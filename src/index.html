@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <!-- icon -->
+    <link rel="shortcut icon" href="favicon.ico">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="./static/element-ui/lib/theme-chalk/index.css">
+    <style>
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .chat-btn {
+            border-radius: unset;
+            width: 100%;
+            border-top: 0px;
+            border-left: 0px;
+            border-right: 0px;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        .send_btn {
+            background: rgb(255, 255, 255);
+            border: 0px;
+            width: 28px;
+            height: 28px;
+            line-height: 34px;
+            border-radius: 6px;
+            color: rgb(142, 142, 160);
+        }
+
+        .send_btn:hover {
+            background: rgb(121, 121, 121);
+            color: rgb(255, 255, 255);
+        }
+
+        .send_btn:active {
+            background: rgb(160, 160, 160);
+            color: rgb(255, 255, 255);
+        }
+
+
+        .chat_item {
+            border-bottom: 1px #eee solid;
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            justify-content: center;
+        }
+
+        .chat_item_assistant {
+            background: #f5f5f5;
+        }
+
+        .chat_item>div {
+            width: 80%;
+            display: flex;
+            align-items: center;
+        }
+
+        .space_bar div {
+            width: 100%;
+        }
+
+        .space_bar {
+            width: 80%;
+            margin-bottom: 35px;
+            margin-top: 35px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .1);
+            /* border-radius: 6px; */
+            border: 1px #eeeeee solid;
+            display: flex;
+            align-items: center;
+            padding-bottom: .75rem;
+            padding-top: .75rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        /* 隐藏滚动条的箭头和按钮 */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #eeeeee;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background-color: #ffffff;
+            border-radius: 5px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .lds-dual-ring {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+        }
+
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 64px;
+            height: 64px;
+            margin: 8px;
+            border-radius: 50%;
+            border: 6px solid #fff;
+            border-color: #fff transparent #fff transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+
+        @keyframes lds-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        pre code {
+            background: rgb(32, 33, 35);
+            padding: 15px;
+            display: block;
+            border-radius: 5px;
+        }
+
+        .history::-webkit-scrollbar {
+            width: 0px;
+            height: 0px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 0px;
+            height: 0px;
+        }
+
+        .history_item {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: flex-start;
+            color: #393939;
+            flex-direction: row;
+        }
+
+        .history_item_text {
+            width: 100%;
+            padding: 25px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+            cursor: pointer;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .history_item_text:hover {
+            background: rgba(208, 208, 208, 1);
+        }
+
+        .history_item_delete {
+            flex: 3;
+            padding: 25px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12px;
+            cursor: pointer;
+            /* 不可选 */
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            border-left: 0;
+        }
+
+        .history_item_delete:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .el-button--primary {
+            background-color: rgb(32, 33, 35);
+            border-color: rgb(32, 33, 35);
+            color: #fff;
+        }
+
+        .el-button--primary:hover {
+            background-color: rgb(32, 33, 35);
+            border-color: rgb(32, 33, 35);
+            color: #fff;
+        }
+
+        .el-button--primary:focus {
+            background-color: rgb(32, 33, 35);
+            border-color: rgb(32, 33, 35);
+            color: #fff;
+        }
+
+        .el-button--primary:active {
+            background-color: rgb(32, 33, 35);
+            border-color: rgb(32, 33, 35);
+            color: #fff;
+        }
+
+
+        .el-button--text {
+            color: rgb(32, 33, 35);
+        }
+
+        .el-button--text:hover {
+            color: rgb(32, 33, 35);
+        }
+
+        .el-button--text:focus {
+            color: rgb(32, 33, 35);
+        }
+
+        .el-button--text:active {
+            color: rgb(32, 33, 35);
+        }
+
+        .csv-table {
+            width: 100%;
+            border: 1px solid #ddd;
+        }
+
+        .csv-table th,
+        .csv-table td {
+            border: 1px solid #ddd;
+            padding: 5px;
+        }
+
+        .app {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: row;
+        }
+
+        .right-toolbar {
+            background: #ffffff;
+            color: #333;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .right-main {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-center {
+            display: flex;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .left-main {
+            width: 250px;
+            height: 100%;
+            background: rgb(244 244 244);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ddd;
+        }
+
+        .left-toolbar {
+            height: 50px;
+            background: #ffffff;
+            color: #333;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .header {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .middle {
+            display: flex;
+            flex: 12;
+            overflow: hidden;
+        }
+
+        .footer {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .history {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .left-left {
+            height: 100%;
+            background: rgb(32, 33, 35);
+            width: 62px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            color: #eee;
+            font-size: 28px;
+            /* padding-top: 180px; */
+        }
+
+        .left-left div {
+            cursor: pointer;
+            margin-bottom: 20px;
+            margin-top: 20px;
+            padding: 10px;
+        }
+
+        .left-left div i {
+            font-size: 28px;
+            display: block;
+            width: 30px;
+            height: 30px;
+        }
+
+        .left-left .active {
+            color: #ababab;
+        }
+
+        .screen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+        }
+    </style>
+    <link rel="stylesheet" href="./static/prettify.css">
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script src="./static/vue.js"></script>
+</head>
+
+<body>
+    <div id="app" class="app">
+        <template>
+
+            <div class="left-left">
+                <div :class="{'active':active_screen=='chat'}" @click="activeScreen('chat')"><i
+                        class="el-icon-chat-dot-square"></i></div>
+                <div @click="activeScreen('setting')"><i class="el-icon-setting"></i></div>
+            </div>
+
+            <div class="screen">
+                <div class="left-main">
+
+                    <div class="left-toolbar header">
+                        <div style="padding: 0px 25px 0 25px;width: 100%;">
+                            <el-input placeholder="请输入内容" v-model="search_title">
+                                <i slot="prefix" class="el-input__icon el-icon-search"></i>
+                            </el-input>
+                        </div>
+                    </div>
+
+                    <div class="history middle">
+
+                        <div style="height: 100%;overflow-y: auto;">
+                            <div v-if="active_screen=='chat'" v-menu="getOptions(item)" class="history_item"
+                                v-for="(item,index) in history.filter(item => search_title==''||item.title.indexOf(search_title) > -1)"
+                                :key="index">
+                                <div class="history_item_text" v-if="item['title']!=''" @click="setUUID(item['uuid'])">
+                                    {{item['title']}}</div>
+                                <div class="history_item_text" v-if="item['title']==''" @click="setUUID(item['uuid'])">
+                                    ...
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div v-show="active_screen=='chat'" class="right-main">
+                    <div class="right-toolbar header">
+                        <div style="width: 80%;text-align: center;">
+                            <div
+                                style="    display: inline-block;width: 200px;font-size: 16px;font-family: 'Microsoft YaHei';white-space: nowrap;overflow: hidden;text-overflow: ellipsis ">
+                                {{title}}</div>
+
+                        </div>
+                    </div>
+                    <div class="right-center middle">
+                        <div class="all_chat_list_container"
+                            style=" width: 100%;overflow: auto;border-radius: 5px;flex:6">
+                            <div v-for="(item,index) in chatList">
+                                <div v-if="item.role == 'user'" class="chat_item"
+                                    v-menu="getChatRecordOptions(index,item)">
+                                    <div>
+                                        <pre>{{item.content}}</pre>
+                                    </div>
+                                </div>
+                                <div v-if="item.role == 'assistant'" class="chat_item chat_item_assistant"
+                                    v-menu="getChatRecordOptions(index,item)">
+                                    <div v-if="item.content!=''">
+                                        <div
+                                            style="font-size:14px;flex-direction: column;align-items: flex-start;display: flex;justify-content: center;margin-top: 14px;margin-bottom: 14px;">
+                                            <div v-html="item.content"> </div>
+                                            <el-button v-if="lock && index==chatList.length-1" size="mini" type="plain"
+                                                @click="stopGenerate()">stop</el-button>
+                                        </div>
+                                    </div>
+                                    <div v-if="item.content==''" style="justify-content: center;">
+                                        <div class="lds-dual-ring"
+                                            style="justify-content: center;margin-top: 14px;margin-bottom: 14px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  -->
+                        </div>
+
+                        <div
+                            style="display: flex;align-items: flex-end; width: 100%;justify-content: center;box-shadow: 0 -10px 30px 0px #afafaf2e;align-items: center;">
+
+                            <el-button circle style="margin-right: 25px;color: #eee;" @click="clearChatList">
+                                <svg xmlns="http://www.w3.org/2000/svg" stroke="currentColor" viewBox="0 0 24 24"
+                                    height="1em" width="1em">
+                                    <path
+                                        d="M23.715,2.285a1.013,1.013,0,0,0-1.43,0L17.521,7.049l-.32-.313a5.008,5.008,0,0,0-6.429-.479A16.618,16.618,0,0,1,6.224,8.685L4.15,9.293a5.036,5.036,0,0,0-3.113,2.635A4.973,4.973,0,0,0,.9,15.947a12.95,12.95,0,0,0,12.112,8.064h.924a1.011,1.011,0,0,0,.578-.182A15.288,15.288,0,0,0,21.224,13.62a5.029,5.029,0,0,0-1.453-4.374l-.8-.784,4.747-4.747A1.013,1.013,0,0,0,23.715,2.285Zm-10.107,19.7h-.6A11.3,11.3,0,0,1,8.7,21.138l.011-.006a11.546,11.546,0,0,0,4.351-3.8l.518-.761a1.01,1.01,0,0,0-1.67-1.138l-.518.761A9.535,9.535,0,0,1,7.8,19.327l-1.251.63a10.757,10.757,0,0,1-2.583-2.57,11.625,11.625,0,0,0,4.377-2.664,1.011,1.011,0,0,0-1.414-1.446,9.617,9.617,0,0,1-3.98,2.32c-.061-.135-.127-.267-.182-.406a2.906,2.906,0,0,1,.085-2.381,3.023,3.023,0,0,1,1.864-1.578l2.073-.608a15.364,15.364,0,0,0,3.426-1.588l7.915,7.712A14.192,14.192,0,0,1,13.608,21.989Zm5.62-8.683a12.421,12.421,0,0,1-.309,1.387L11.948,7.9l0,0a3.011,3.011,0,0,1,1.755-.566,2.973,2.973,0,0,1,2.084.849l2.569,2.509A3.01,3.01,0,0,1,19.228,13.306Z" />
+                                </svg>
+                            </el-button>
+
+                            <div class="space_bar">
+                                <div>
+                                    <textarea id="input_text" rows="1" @keydown.ctrl.enter="sendText"
+                                        style="width: 100%;font-size: 1rem;max-height: 200px; line-height: 1.5rem;border: 0;outline: none;resize: none;overflow: auto;"
+                                        v-model="inputText" @input="inputTextChange"></textarea>
+                                </div>
+
+                                <button class="send_btn" @click="sendText">
+                                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"
+                                        stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 mr-1" height="1em"
+                                        width="1em" xmlns="http://www.w3.org/2000/svg">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <el-dialog title="设置" :visible="active_screen=='setting'" :show-close="false" center width="800px" >
+                <div style="height: 400px;width: 740px;">
+                    <el-form ref="form" label-width="100px" :inline="true">
+                        <el-form-item label="模型文件夹">
+                            <el-input size="mini" v-model="nlp_model_base_path" placeholder="留空为当前执行程序所在文件夹"
+                                style="width: 200px;"></el-input>
+                        </el-form-item>
+                        <el-form-item label="模型文件">
+                            <el-select size="mini"  v-model="nlp_model" placeholder="请选择模型文件" style="width: 200px;">
+                                <el-option v-for="item in nlp_model_list" :key="item.value" :label="item.label"
+                                    :value="item.value">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+
+                    </el-form>
+
+
+                    <el-form ref="form" :inline="true"  label-width="100px">
+                        <el-form-item label="temperature">
+                            <el-input-number size="mini"  v-model="predict_config.temperature" :step="0.1">
+                            </el-input-number>
+                        </el-form-item>
+                        <el-form-item label="top_p">
+                            <el-input-number size="mini"  v-model="predict_config.top_p" :step="0.1">
+                            </el-input-number>
+                        </el-form-item>
+                        <el-form-item label="top_k">
+                            <el-input-number size="mini"  v-model="predict_config.top_k" :step="1"> </el-input-number>
+                        </el-form-item>
+                        <el-form-item label="repeat">
+                            <el-input-number size="mini"  v-model="predict_config.repeat" :step="1"> </el-input-number>
+                        </el-form-item>
+                        <el-form-item label="penalty">
+                            <el-input-number size="mini"  v-model="predict_config.penalty" :step="0.1"> </el-input-number>
+                        </el-form-item>
+                        <el-form-item label="tokens">
+                            <el-input-number size="mini"  v-model="predict_config.tokens" :step="1"> </el-input-number>
+                        </el-form-item>
+                        <el-form-item label="threads">
+                            <el-input-number size="mini"  v-model="predict_config.threads" :step="1"> </el-input-number>
+                        </el-form-item>
+                        <el-form-item label="用户前缀">
+                            <el-input size="mini"  v-model="predict_config.user_prefix" style="width: 130px;"> </el-input>
+                        </el-form-item> 
+                        <el-form-item label="AI前缀">
+                            <el-input size="mini"  v-model="predict_config.assistant_prefix" style="width: 130px;"> </el-input>
+                        </el-form-item> 
+                        <el-form-item label="停止符">
+                            <el-input size="mini"  v-model="predict_config.stop_words" style="width: 130px;"> </el-input>
+                        </el-form-item>  
+                    </el-form>
+                    <textarea style="resize: none;height: 100px;width: 100%;" v-model="predict_config.instruct"></textarea> 
+                </div>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="activeScreen('chat')">返回</el-button>
+                    <el-button type="primary" @click="loadModel()">加载模型</el-button>
+                </div>
+            </el-dialog>
+
+
+
+            <el-dialog title="编辑" :visible="active_screen=='chat_editor'" :show-close="false" center width="600px"
+                style="min-width: 400px;">
+                <div style="height: 300px;min-width: 400px;">
+                    <textarea style="resize: none;width: 100%;height: 100%;"
+                        v-model="chat_editor_data.content"></textarea>
+                </div>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="activeScreen('chat')">取 消</el-button>
+                    <el-button type="primary" @click="chatEditorSave()">确 定</el-button>
+                </div>
+            </el-dialog>
+
+
+        </template>
+    </div>
+</body>
+
+<!-- import Vue before Element -->
+<script src="./static/axios.js"></script>
+<script src="./static/right-menu.js"></script>
+<script src="./static/vue-right-menu.js"></script>
+<!-- import JavaScript -->
+<script src="./static/element-ui/lib/index.js"></script>
+<script src="./static/qs.js"></script>
+<script src="./static/marked.min.js"></script>
+<script src="./static/prettify.js"></script>
+<script src="./static/tools.js"></script>
+<script src="./index.js"></script>
+
+</html>

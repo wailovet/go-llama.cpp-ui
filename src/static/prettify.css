@@ -1,0 +1,130 @@
+.pln {
+    color: #fff
+}
+
+@media screen {
+    .str {
+        color: #f8f
+    }
+
+    .kwd {
+        color: #ff8
+    }
+
+    .com {
+        color: #8ff
+    }
+
+    .typ {
+        color: #afa
+    }
+
+    .lit {
+        color: #faa
+    }
+
+    .clo,
+    .opn,
+    .pun {
+        color: #aaf
+    }
+
+    .tag {
+        color: #ff8
+    }
+
+    .atn {
+        color: #afa
+    }
+
+    .atv {
+        color: #f8f
+    }
+
+    .dec,
+    .var {
+        color: #afa
+    }
+
+    .fun {
+        color: #0ff
+    }
+}
+
+@media print,
+projection {
+
+    .kwd,
+    .tag,
+    .typ {
+        font-weight: 700
+    }
+
+    .str {
+        color: #f6f
+    }
+
+    .kwd {
+        color: #ff6
+    }
+
+    .com {
+        color: #6ff;
+        font-style: italic
+    }
+
+    .typ {
+        color: #4f4
+    }
+
+    .lit {
+        color: #f44
+    }
+
+    .clo,
+    .opn,
+    .pun {
+        color: #44f
+    }
+
+    .tag {
+        color: #ff6
+    }
+
+    .atn {
+        color: #4f4
+    }
+
+    .atv {
+        color: #f6f
+    }
+}
+
+pre.prettyprint {
+    padding: 2px;
+    border: 1px solid #888
+}
+
+ol.linenums {
+    margin-top: 0;
+    margin-bottom: 0
+}
+
+li.L0,
+li.L1,
+li.L2,
+li.L3,
+li.L5,
+li.L6,
+li.L7,
+li.L8 {
+    list-style-type: none
+}
+
+li.L1,
+li.L3,
+li.L5,
+li.L7,
+li.L9 {
+    background: #eee
+}
