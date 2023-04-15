@@ -1,6 +1,8 @@
 # go-llama.cpp-ui 
 为llama.cpp编写的UI操作界面,在win上可以快速体验llama.cpp的功能
 
+## 演示
+![演示](demo.gif)
 
 ## 快速开始 
  
