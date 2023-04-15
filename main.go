@@ -104,46 +104,25 @@ func serviceStartUp() {
 
 		nuwa.Http().HandleFunc("/chat/send", func(ctx nuwa.HttpContext) {
 			sessionId := ctx.ParamRequired("session_id")
-			repeat := cast.ToInt(ctx.REQUEST["repeat"])
-			penalty := cast.ToFloat64(ctx.REQUEST["penalty"])
-			temperature := cast.ToFloat64(ctx.REQUEST["temperature"])
-			topP := cast.ToFloat64(ctx.REQUEST["top_p"])
-			topK := cast.ToInt(ctx.REQUEST["top_k"])
-			tokens := cast.ToInt(ctx.REQUEST["tokens"])
-			threads := cast.ToInt(ctx.REQUEST["threads"])
+			repeat := int(gjson.Get(ctx.BODY, "repeat").Int())
+			penalty := gjson.Get(ctx.BODY, "penalty").Float()
+			temperature := gjson.Get(ctx.BODY, "temperature").Float()
+			topP := gjson.Get(ctx.BODY, "top_p").Float()
+			topK := int(gjson.Get(ctx.BODY, "top_k").Int())
+			tokens := int(gjson.Get(ctx.BODY, "tokens").Int())
+			threads := int(gjson.Get(ctx.BODY, "threads").Int())
 			stop_words := ctx.REQUEST["stop_words"]
-			if repeat == 0 {
-				repeat = 8
-			}
-			if penalty == 0 {
-				penalty = 1.5
-			}
-			if temperature == 0 {
-				temperature = 0.7
-			}
-			if topP == 0 {
-				topP = 0.7
-			}
-			if tokens == 0 {
-				tokens = 1024
-			}
-			if threads == 0 {
-				threads = 2
-			}
-			if stop_words == "" {
-				stop_words = "##"
-			}
-
 			content := gjson.Get(ctx.BODY, "content").Raw
 			var his ChatHistory
 			json.Unmarshal([]byte(content), &his)
 			ret := ""
 
 			prompts := Prompts{
-				Instruct:        ctx.ParamRequired("instruct"),
-				AssistantPrefix: ctx.ParamRequired("assistant_prefix"),
-				UserPrefix:      ctx.ParamRequired("user_prefix"),
+				Instruct:        ctx.REQUEST["instruct"],
+				AssistantPrefix: ctx.REQUEST["assistant_prefix"],
+				UserPrefix:      ctx.REQUEST["user_prefix"],
 			}
+			log.Println("topK:", topK, "repeat:", repeat, "penalty:", penalty, "temperature:", temperature, "topP:", topP, "tokens:", tokens, "threads:", threads, "stop_words:", stop_words)
 			_, err := lm.Predict(prompts, his, llama.SetTopK(topK), llama.SetRepeat(repeat), llama.SetPenalty(penalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetStreamFn(func(outputText string) (stop bool) {
 
 				if strings.HasSuffix(outputText, stop_words) {
