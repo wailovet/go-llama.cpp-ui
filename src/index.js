@@ -102,14 +102,14 @@ function initVue() {
           content: "",
         },
         predict_config: {
-          temperature: 0.7,
-          top_k: 40,
-          top_p: 0.9,
-          penalty: 1.0,
-          repeat: 8,
+          temperature: 0.65,
+          top_k: 10000,
+          top_p: 0.7,
+          penalty: 1,
+          repeat: 64,
           tokens: 128,
           threads: 2,
-          instruct: "你将作为一个AI助手,与用户进行对话,回复用户时请尽量详细.",
+          instruct: "### instruction: 你是一个友好的助手,你会详细的对用户的问题进行回复",
           user_prefix: "### user:",
           assistant_prefix: "### assistant:",
           stop_words: "##",
@@ -221,8 +221,11 @@ function initVue() {
         textarea.style.height = textarea.scrollHeight - 5 + "px";
       },
       clearChatList: async function (e) {
-        app.uuid = guid();
-        await loadChatHistory();
+        if (app.lock) { 
+          return;
+        }
+        app.uuid = guid(); 
+        await loadChatHistory(); 
         await loadChatContent();
       },
       loadPage: async function () {
