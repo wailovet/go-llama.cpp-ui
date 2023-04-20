@@ -34,10 +34,6 @@ var wsConnMapLock sync.RWMutex               //ws连接池锁
 
 var adminHome, _ = os.UserHomeDir() //用户目录
 
-func init() {
-	llama.Install() //释放llama.cpp相关dll文件
-}
-
 func modelLoad(filename string) error {
 	err := lm.StartUp(filename)
 	if err != nil {
