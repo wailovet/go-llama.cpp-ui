@@ -64,6 +64,9 @@
             display: flex;
             align-items: center;
         }
+        .chat_item img {
+            width: 50%; 
+        }
 
         .space_bar div {
             width: 100%;
@@ -367,6 +370,20 @@
             display: flex;
             flex-direction: row;
         }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            width: 100%;
+            height: 100%;
+            transition: opacity .5s;
+        }
+
+        .fade-enter,
+        .fade-leave-to {
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+        }
     </style>
     <link rel="stylesheet" href="./static/prettify.css">
     <meta name='viewport' content='width=device-width, initial-scale=1'>
@@ -375,6 +392,7 @@
 
 <body>
     <div id="app" class="app">
+
         <template>
 
             <div class="left-left">
@@ -426,7 +444,7 @@
                                 <div v-if="item.role == 'user'" class="chat_item"
                                     v-menu="getChatRecordOptions(index,item)">
                                     <div>
-                                        <pre>{{item.content}}</pre>
+                                        <pre>{{item['show']=="zh"?item.chinese:item.content}}</pre>
                                     </div>
                                 </div>
                                 <div v-if="item.role == 'assistant'" class="chat_item chat_item_assistant"
@@ -434,17 +452,19 @@
                                     <div v-if="item.content!=''">
                                         <div
                                             style="font-size:14px;flex-direction: column;align-items: flex-start;display: flex;justify-content: center;margin-top: 14px;margin-bottom: 14px;">
-                                            <div v-html="item.content"> </div>
+                                            <div v-html="item['show']=='zh' && item.chinese!=''?item.chinese:item.content"> </div>
                                             <el-button v-if="lock && index==chatList.length-1" size="mini" type="plain"
                                                 @click="stopGenerate()">stop</el-button>
                                         </div>
                                     </div>
                                     <div v-if="item.content==''" style="justify-content: center;">
                                         <div class="lds-dual-ring"
-                                            style="justify-content: center;margin-top: 14px;margin-bottom: 14px;"></div>
+                                            style="justify-content: center;margin-top: 14px;margin-bottom: 14px;">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
                             <!--  -->
                         </div>
 
@@ -480,7 +500,7 @@
                 </div>
             </div>
 
-            <el-dialog title="设置" :visible="active_screen=='setting'" :show-close="false" center width="800px" >
+            <el-dialog title="设置" :visible="active_screen=='setting'" :show-close="false" center width="800px">
                 <div style="height: 400px;width: 740px;">
                     <el-form ref="form" label-width="100px" :inline="true">
                         <el-form-item label="模型文件夹">
@@ -488,7 +508,7 @@
                                 style="width: 200px;"></el-input>
                         </el-form-item>
                         <el-form-item label="模型文件">
-                            <el-select size="mini"  v-model="nlp_model" placeholder="请选择模型文件" style="width: 200px;">
+                            <el-select size="mini" v-model="nlp_model" placeholder="请选择模型文件" style="width: 200px;">
                                 <el-option v-for="item in nlp_model_list" :key="item.value" :label="item.label"
                                     :value="item.value">
                                 </el-option>
@@ -498,41 +518,53 @@
                     </el-form>
 
 
-                    <el-form ref="form" :inline="true"  label-width="100px">
+                    <el-form ref="form" :inline="true" label-width="100px">
                         <el-form-item label="temperature">
-                            <el-input-number size="mini"  v-model="predict_config.temperature" :step="0.1">
+                            <el-input-number size="mini" v-model="predict_config.temperature" :step="0.1">
                             </el-input-number>
                         </el-form-item>
                         <el-form-item label="top_p">
-                            <el-input-number size="mini"  v-model="predict_config.top_p" :step="0.1">
+                            <el-input-number size="mini" v-model="predict_config.top_p" :step="0.1">
                             </el-input-number>
                         </el-form-item>
                         <el-form-item label="top_k">
-                            <el-input-number size="mini"  v-model="predict_config.top_k" :step="1"> </el-input-number>
+                            <el-input-number size="mini" v-model="predict_config.top_k" :step="1">
+                            </el-input-number>
                         </el-form-item>
                         <el-form-item label="repeat">
-                            <el-input-number size="mini"  v-model="predict_config.repeat" :step="1"> </el-input-number>
+                            <el-input-number size="mini" v-model="predict_config.repeat" :step="1">
+                            </el-input-number>
                         </el-form-item>
                         <el-form-item label="penalty">
-                            <el-input-number size="mini"  v-model="predict_config.penalty" :step="0.1"> </el-input-number>
+                            <el-input-number size="mini" v-model="predict_config.penalty" :step="0.1">
+                            </el-input-number>
                         </el-form-item>
                         <el-form-item label="tokens">
-                            <el-input-number size="mini"  v-model="predict_config.tokens" :step="1"> </el-input-number>
+                            <el-input-number size="mini" v-model="predict_config.tokens" :step="1">
+                            </el-input-number>
                         </el-form-item>
                         <el-form-item label="threads">
-                            <el-input-number size="mini"  v-model="predict_config.threads" :step="1"> </el-input-number>
+                            <el-input-number size="mini" v-model="predict_config.threads" :step="1">
+                            </el-input-number>
                         </el-form-item>
                         <el-form-item label="用户前缀">
-                            <el-input size="mini"  v-model="predict_config.user_prefix" style="width: 130px;"> </el-input>
-                        </el-form-item> 
+                            <el-input size="mini" v-model="predict_config.user_prefix" style="width: 130px;">
+                            </el-input>
+                        </el-form-item>
                         <el-form-item label="AI前缀">
-                            <el-input size="mini"  v-model="predict_config.assistant_prefix" style="width: 130px;"> </el-input>
-                        </el-form-item> 
+                            <el-input size="mini" v-model="predict_config.assistant_prefix" style="width: 130px;">
+                            </el-input>
+                        </el-form-item>
                         <el-form-item label="停止符">
-                            <el-input size="mini"  v-model="predict_config.stop_words" style="width: 130px;"> </el-input>
-                        </el-form-item>  
+                            <el-input size="mini" v-model="predict_config.stop_words" style="width: 130px;">
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item label="翻译模式">
+                            <el-checkbox v-model="predict_config.translate"></el-checkbox>
+                        </el-form-item>
                     </el-form>
-                    <textarea style="resize: none;height: 100px;width: 100%;" v-model="predict_config.instruct"></textarea> 
+                    <textarea style="resize: none;height: 100px;width: 100%;" placeholder="pormpt"
+                        v-model="predict_config.instruct"></textarea>
                 </div>
                 <div slot="footer" class="dialog-footer">
                     <el-button @click="activeScreen('chat')">返回</el-button>
@@ -556,6 +588,8 @@
 
 
         </template>
+
+
     </div>
 </body>
 

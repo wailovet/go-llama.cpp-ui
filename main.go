@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
 	"github.com/wailovet/go-llama.cpp-winbin"
+	"github.com/wailovet/gotranslate"
 	"github.com/wailovet/gowebview2"
 	"github.com/wailovet/nuwa"
 )
@@ -25,7 +26,7 @@ var fsbin embed.FS
 
 var lm = Llama{}
 
-const debug = false
+const debug = true
 
 const PORT = "36182" //内部端口
 
@@ -41,6 +42,8 @@ func modelLoad(filename string) error {
 	}
 	return nil
 }
+
+var translate *gotranslate.Translate
 
 func serviceStartUp() {
 	go func() {
@@ -98,6 +101,48 @@ func serviceStartUp() {
 			ctx.DisplayByData(fl)
 		})
 
+		nuwa.Http().HandleFunc("/translate", func(ctx nuwa.HttpContext) {
+			if translate == nil {
+				translate = gotranslate.NewTranslate()
+			}
+			content := ctx.ParamRequired("content")
+			to := ctx.ParamRequired("to")
+			from := ctx.ParamRequired("from")
+
+			contents := strings.Split(content, "```")
+			if len(contents) < 2 || len(contents)%2 == 0 {
+				content = strings.ReplaceAll(content, "\n", "\n\n")
+				ret, err := translate.Translate(content, from, to)
+				ctx.CheckErrDisplayByError(err)
+
+				content = strings.ReplaceAll(content, "\n\n", "\n")
+				ret = ChinesePunctuationToEnglishPunctuation(ret)
+
+				ctx.DisplayByData(ret)
+			}
+
+			for i := range contents {
+				if i%2 == 0 {
+					contents[i] = strings.ReplaceAll(contents[i], "\n", "\n\n")
+					contents[i], _ = translate.Translate(contents[i], from, to)
+					contents[i] = strings.ReplaceAll(contents[i], "\n\n", "\n")
+					contents[i] = ChinesePunctuationToEnglishPunctuation(contents[i])
+				}
+			}
+
+			ret := ""
+			for i := range contents {
+				if i%2 == 0 {
+					ret += contents[i]
+				} else {
+					ret += "\n```" + contents[i] + "```\n"
+				}
+			}
+
+			ctx.DisplayByData(ret)
+
+		})
+
 		nuwa.Http().HandleFunc("/chat/send", func(ctx nuwa.HttpContext) {
 			sessionId := ctx.ParamRequired("session_id")
 			repeat := int(gjson.Get(ctx.BODY, "repeat").Int())
@@ -109,6 +154,7 @@ func serviceStartUp() {
 			threads := int(gjson.Get(ctx.BODY, "threads").Int())
 			stop_words := ctx.REQUEST["stop_words"]
 			content := gjson.Get(ctx.BODY, "content").Raw
+
 			var his ChatHistory
 			json.Unmarshal([]byte(content), &his)
 			ret := ""
@@ -119,6 +165,7 @@ func serviceStartUp() {
 				UserPrefix:      ctx.REQUEST["user_prefix"],
 			}
 			log.Println("topK:", topK, "repeat:", repeat, "penalty:", penalty, "temperature:", temperature, "topP:", topP, "tokens:", tokens, "threads:", threads, "stop_words:", stop_words)
+
 			_, err := lm.Predict(prompts, his, llama.SetTopK(topK), llama.SetRepeat(repeat), llama.SetPenalty(penalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetStreamFn(func(outputText string) (stop bool) {
 
 				if strings.HasSuffix(outputText, stop_words) {
@@ -200,6 +247,11 @@ func serviceStartUp() {
 }
 
 func main() {
+	defer func() {
+		if translate != nil {
+			translate.Close()
+		}
+	}()
 	serviceStartUp() //启动服务
 
 	var fc *gowebview2.AppMode

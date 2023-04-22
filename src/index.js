@@ -109,10 +109,11 @@ function initVue() {
           repeat: 64,
           tokens: 128,
           threads: 2,
-          instruct: "### instruction: 你是一个友好的助手,你会详细的对用户的问题进行回复",
+          instruct: "",
           user_prefix: "### user:",
           assistant_prefix: "### assistant:",
           stop_words: "##",
+          translate: false,
         },
       };
     },
@@ -170,7 +171,7 @@ function initVue() {
           {
             type: "li",
             text: "编辑",
-            callback: async function () {
+            callback: function () {
               app.active_screen = "chat_editor";
               app.chat_editor_data = {
                 index: index,
@@ -180,12 +181,50 @@ function initVue() {
           },
         ];
 
+        if (item.show && item.show != "") {
+          if (item.show == "zh") {
+            opts.push({
+              type: "li",
+              text: "显示英文",
+              callback: async function () {
+                app.sourceChatList[index]["show"] = "en";
+                let sourceChatList = JSON.parse(
+                  JSON.stringify(app.sourceChatList)
+                );
+                app.sourceChatList = [];
+                await timeout(100);
+                app.sourceChatList = sourceChatList;
+
+                await timeout(100);
+                saveCurrentChatHistory();
+              },
+            });
+          }
+          if (item.show == "en") {
+            opts.push({
+              type: "li",
+              text: "显示中文",
+              callback: async function () {
+                app.sourceChatList[index]["show"] = "zh";
+                let sourceChatList = JSON.parse(
+                  JSON.stringify(app.sourceChatList)
+                );
+                app.sourceChatList = [];
+                await timeout(100);
+                app.sourceChatList = sourceChatList;
+                await timeout(100);
+                saveCurrentChatHistory();
+              },
+            });
+          }
+        }
+
         if (item.role == "user") {
           opts.push({
             type: "li",
             text: "将以上记录克隆到新的窗口",
             disabled: index - 1 < 1,
-            callback: async function () {
+            callback: function () {
               app.uuid = guid();
               app.sourceChatList = app.sourceChatList.slice(0, index);
             },
@@ -221,11 +260,11 @@ function initVue() {
         textarea.style.height = textarea.scrollHeight - 5 + "px";
       },
       clearChatList: async function (e) {
-        if (app.lock) { 
+        if (app.lock) {
           return;
         }
-        app.uuid = guid(); 
-        await loadChatHistory(); 
+        app.uuid = guid();
+        await loadChatHistory();
         await loadChatContent();
       },
       loadPage: async function () {
@@ -327,6 +366,8 @@ async function checkInitModel() {
 }
 
 async function loadChatContent() {
+  app.sourceChatList = [];
+  await timeout(200);
   for (let item of app.history) {
     if (item.uuid == app.uuid) {
       app.sourceChatList = item.content;
@@ -346,21 +387,47 @@ var appAlert;
 async function sendText() {
   app.is_stop_generate = false;
   var content = app.inputText;
+  app.inputText = "";
+  app.toEnd();
   if (content) {
     bakSourceChatList = JSON.parse(JSON.stringify(app.sourceChatList));
 
-    app.sourceChatList.push({
-      role: "user",
-      content: content,
-    });
-    app.sourceChatList.push({
-      role: "assistant",
-      content: "",
-    });
+    if (app.predict_config.translate) {
+      app.sourceChatList.push({
+        role: "user",
+        content: content,
+        chinese: content,
+        show: "zh",
+      });
 
-    app.toEnd();
+      var end_index = app.sourceChatList.length - 1;
+      console.log("end_index:", end_index);
+      app.sourceChatList.push({
+        role: "assistant",
+        content: "",
+        chinese: "",
+        show: "zh",
+      });
 
-    app.inputText = "";
+      var en_content = await zh2en(content);
+      console.log("end_index:", end_index);
+      console.log(
+        " app.sourceChatList[end_index]:",
+        app.sourceChatList[end_index]
+      );
+      app.sourceChatList[end_index].content = en_content;
+    } else {
+      app.sourceChatList.push({
+        role: "user",
+        content: content,
+      });
+
+      app.sourceChatList.push({
+        role: "assistant",
+        content: "",
+      });
+    }
+
     setTimeout(() => {
       app.inputTextChange();
     }, 100);
@@ -398,14 +465,47 @@ async function sendText() {
     out_text = out_text.replace(/^\s+|\s+$/g, "");
 
     app.sourceChatList[app.sourceChatList.length - 1].content = out_text;
+
+    if (app.predict_config.translate) {
+      zh_content = await en2zh(out_text);
+      app.sourceChatList[app.sourceChatList.length - 1].chinese = zh_content;
+    } 
+    app.sourceChatList = JSON.parse(JSON.stringify(app.sourceChatList));
     app.$forceUpdate();
-
+ 
     await saveCurrentChatHistory();
-
     await loadChatContent();
   }
 
   app.lock = false;
+}
+
+async function zh2en(text) {
+  let res = await axios.post(`${host}/translate`, {
+    content: text,
+    from: "zh-Hans",
+    to: "en",
+  });
+  res = res.data;
+  if (res.code == 0) {
+    return res.data;
+  } else {
+    app.$message.error(res.message);
+  }
+}
+
+async function en2zh(text) {
+  let res = await axios.post(`${host}/translate`, {
+    content: text,
+    from: "en",
+    to: "zh-Hans",
+  });
+  res = res.data;
+  if (res.code == 0) {
+    return res.data;
+  } else {
+    app.$message.error(res.message);
+  }
 }
 
 async function saveCurrentChatHistory() {
@@ -415,15 +515,25 @@ async function saveCurrentChatHistory() {
     if (history[i].uuid == app.uuid) {
       isExist = true;
       history[i].content = app.sourceChatList;
-      history[i].title = history[i].content[0].content;
+      if (history[i].content[0].chinese != "") {
+        history[i].title = history[i].content[0].chinese;
+      } else {
+        history[i].title = history[i].content[0].content;
+      }
       history[i].update_time = new Date().getTime();
       break;
     }
   }
   if (!isExist) {
+    var title;
+    if (app.sourceChatList[0].chinese != "") {
+      title = app.sourceChatList[0].chinese;
+    } else {
+      title = app.sourceChatList[0].content;
+    }
     history.push({
       uuid: app.uuid,
-      title: app.sourceChatList[0].content,
+      title: title,
       content: app.sourceChatList,
       update_time: new Date().getTime(),
     });
@@ -456,6 +566,23 @@ function preprocessing(data) {
           '<pre><code class="prettyprint language'
         );
         data[i].content = data[i].content.replace(
+          /<a href/g,
+          "<a target='_blank' href"
+        );
+      }
+      if (data[i].chinese) {
+        data[i].chinese = marked.parse(data[i].chinese, {
+          langPrefix: "language-",
+        });
+        data[i].chinese = data[i].chinese.replace(
+          /<pre><code>/g,
+          "<pre><code class='prettyprint'>"
+        );
+        data[i].chinese = data[i].chinese.replace(
+          /<pre><code class="language/g,
+          '<pre><code class="prettyprint language'
+        );
+        data[i].chinese = data[i].chinese.replace(
           /<a href/g,
           "<a target='_blank' href"
         );

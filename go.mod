@@ -7,6 +7,7 @@ require (
 	github.com/spf13/cast v1.5.0
 	github.com/tidwall/gjson v1.14.4
 	github.com/wailovet/go-llama.cpp-winbin v0.0.0-20230413051615-417d9a31dbbf
+	github.com/wailovet/gotranslate v0.0.0-20230422054108-85f2751e60a4
 	github.com/wailovet/gowebview2 v0.0.0-20230413165101-7f715c9a91e0
 	github.com/wailovet/nuwa v0.0.0-20230308063344-ea0a3b766ca2
 )
@@ -41,6 +42,7 @@ require (
 	github.com/wailovet/easycgo v0.0.0-20230409074845-297fccb8d5d2 // indirect
 	github.com/wailovet/gofunc v0.0.0-20201119085723-df1175b913b4 // indirect
 	github.com/wailovet/lorca v0.1.20 // indirect
+	github.com/wailovet/webdriver v0.0.0-20230422054404-f83d7665b1ad // indirect
 	github.com/xujiajun/mmap-go v1.0.1 // indirect
 	github.com/xujiajun/nutsdb v0.11.1 // indirect
 	github.com/xujiajun/utils v0.0.0-20220904132955-5f7c5b914235 // indirect
