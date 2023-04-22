@@ -194,7 +194,6 @@ function initVue() {
                 app.sourceChatList = [];
                 await timeout(100);
                 app.sourceChatList = sourceChatList;
-
                 await timeout(100);
                 saveCurrentChatHistory();
               },
@@ -465,14 +464,15 @@ async function sendText() {
     out_text = out_text.replace(/^\s+|\s+$/g, "");
 
     app.sourceChatList[app.sourceChatList.length - 1].content = out_text;
-
     if (app.predict_config.translate) {
       zh_content = await en2zh(out_text);
       app.sourceChatList[app.sourceChatList.length - 1].chinese = zh_content;
-    } 
+    }
+
     app.sourceChatList = JSON.parse(JSON.stringify(app.sourceChatList));
+    
     app.$forceUpdate();
- 
+
     await saveCurrentChatHistory();
     await loadChatContent();
   }
@@ -526,11 +526,13 @@ async function saveCurrentChatHistory() {
   }
   if (!isExist) {
     var title;
-    if (app.sourceChatList[0].chinese != "") {
+    if (app.sourceChatList[0].chinese && app.sourceChatList[0].chinese != "") {
       title = app.sourceChatList[0].chinese;
     } else {
       title = app.sourceChatList[0].content;
     }
+    // console.log("app.sourceChatList:", app.sourceChatList);
+    // console.log("title:", title);
     history.push({
       uuid: app.uuid,
       title: title,
@@ -543,7 +545,6 @@ async function saveCurrentChatHistory() {
   history.sort((a, b) => {
     return b.update_time - a.update_time;
   });
-
   storageSetValue("chat_history", JSON.stringify(history));
 
   await loadChatContent();

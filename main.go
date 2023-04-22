@@ -26,7 +26,7 @@ var fsbin embed.FS
 
 var lm = Llama{}
 
-const debug = true
+const debug = false
 
 const PORT = "36182" //内部端口
 
