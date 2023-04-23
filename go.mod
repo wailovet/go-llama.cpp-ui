@@ -6,7 +6,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/spf13/cast v1.5.0
 	github.com/tidwall/gjson v1.14.4
-	github.com/wailovet/go-llama.cpp-winbin v0.0.0-20230413051615-417d9a31dbbf
+	github.com/wailovet/go-llama.cpp-winbin v0.0.0-20230423040459-e4a0678e445c
 	github.com/wailovet/gotranslate v0.0.0-20230422054108-85f2751e60a4
 	github.com/wailovet/gowebview2 v0.0.0-20230413165101-7f715c9a91e0
 	github.com/wailovet/nuwa v0.0.0-20230308063344-ea0a3b766ca2
@@ -39,7 +39,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/sjson v1.2.4 // indirect
-	github.com/wailovet/easycgo v0.0.0-20230409074845-297fccb8d5d2 // indirect
+	github.com/wailovet/easycgo v0.0.0-20230416030350-f942820816ea // indirect
 	github.com/wailovet/gofunc v0.0.0-20201119085723-df1175b913b4 // indirect
 	github.com/wailovet/lorca v0.1.20 // indirect
 	github.com/wailovet/webdriver v0.0.0-20230422054404-f83d7665b1ad // indirect
@@ -54,7 +54,6 @@ require (
 	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/tools v0.0.0-20201124115921-2c860bdd6e78 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	lukechampine.com/uint128 v1.1.1 // indirect
 	modernc.org/cc/v3 v3.36.0 // indirect
 	modernc.org/ccgo/v3 v3.16.6 // indirect
