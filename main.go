@@ -2,8 +2,11 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -11,10 +14,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gorilla/websocket"
-	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/wailovet/go-llama.cpp-winbin"
 	"github.com/wailovet/gotranslate"
 	"github.com/wailovet/gowebview2"
@@ -26,7 +30,7 @@ var fsbin embed.FS
 
 var lm = Llama{}
 
-const debug = false
+const debug = true
 
 const PORT = "36182" //内部端口
 
@@ -238,6 +242,137 @@ func serviceStartUp() {
 		})
 
 		log.Println("Starting server on port " + PORT)
+
+		if nuwa.Helper().PathExists(filepath.Join(curPath, "app")) {
+			var localStorageFilename = filepath.Join(curPath, "app", "localStorage.json")
+			var localStorageLocker sync.Mutex
+			nuwa.Http().HandleFunc("/localStorage/setItem", func(ctx nuwa.HttpContext) {
+				localStorageLocker.Lock()
+				defer localStorageLocker.Unlock()
+				key := ctx.ParamRequired("key")
+				value := ctx.ParamRequired("value")
+				fileRaw, _ := ioutil.ReadFile(localStorageFilename)
+				fileStr := string(fileRaw)
+				fileStr, _ = sjson.Set(fileStr, key, value)
+				ioutil.WriteFile(localStorageFilename, []byte(fileStr), 0644)
+				ctx.DisplayByData("ok")
+			})
+
+			nuwa.Http().HandleFunc("/localStorage/getItem", func(ctx nuwa.HttpContext) {
+				localStorageLocker.Lock()
+				defer localStorageLocker.Unlock()
+				key := ctx.ParamRequired("key")
+				fileRaw, _ := ioutil.ReadFile(localStorageFilename)
+				fileStr := string(fileRaw)
+				value := gjson.Get(fileStr, key).String()
+				ctx.DisplayByData(value)
+			})
+
+			nuwa.Http().HandleFunc("/localStorage/removeItem", func(ctx nuwa.HttpContext) {
+				localStorageLocker.Lock()
+				defer localStorageLocker.Unlock()
+				key := ctx.ParamRequired("key")
+				fileRaw, _ := ioutil.ReadFile(localStorageFilename)
+				fileStr := string(fileRaw)
+				fileStr, _ = sjson.Delete(fileStr, key)
+				ioutil.WriteFile(localStorageFilename, []byte(fileStr), 0644)
+				ctx.DisplayByData("ok")
+			})
+
+		}
+
+		nuwa.Http().HandleFunc("/v1/chat/completions", func(ctx nuwa.HttpContext) {
+			body := gjson.Parse(ctx.BODY)
+
+			model := body.Get("model").String()
+			temperature := body.Get("temperature").Float()
+			frequencyPenalty := body.Get("frequency_penalty").Float()
+			maxTokens := body.Get("max_tokens").Int()
+			topP := body.Get("top_p").Float()
+			stream := body.Get("stream").Bool()
+			frole := body.Get("messages.0.role").String()
+			instruct := body.Get("messages.0.content").String()
+			if frole != "system" {
+				instruct = ""
+			}
+			assistantPrefix := "### Assistant:"
+			userPrefix := "### User:"
+
+			prompts := Prompts{
+				Instruct:        instruct,
+				AssistantPrefix: assistantPrefix,
+				UserPrefix:      userPrefix,
+			}
+			his := ChatHistory{}
+			messages := body.Get("messages").Array()
+			for i := range messages {
+				if messages[i].Get("role").String() == "system" {
+					continue
+				}
+				his = append(his, ChatContent{
+					Role:    messages[i].Get("role").String(),
+					Content: messages[i].Get("content").String(),
+				})
+			}
+
+			fullText := ""
+			if lm.model == nil {
+				err := lm.StartUp(model)
+				ctx.CheckErrDisplayByError(err)
+			}
+			buf := bytes.NewBuffer(nil)
+			lm.Predict(prompts, his, llama.SetPenalty(frequencyPenalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(int(maxTokens)), llama.SetThreads(4), llama.SetStreamFn(func(outputText string) (stop bool) {
+
+				if strings.HasSuffix(outputText, "##") {
+					return true
+				}
+				if stream {
+					buf.WriteString(strings.TrimPrefix(outputText, fullText))
+
+					// is correct utf8
+					if utf8.ValidString(buf.String()) {
+						raw, _ := json.Marshal(map[string]interface{}{
+							"choices": []interface{}{
+								map[string]interface{}{
+									"delta": map[string]interface{}{
+										"content": buf.String(),
+									},
+								},
+							},
+						})
+
+						buf.Reset()
+
+						raw = append(raw, []byte("\n")...)
+
+						ctx.OriginResponseWriter.Write(raw)
+
+						if f, ok := ctx.OriginResponseWriter.(http.Flusher); ok {
+							f.Flush()
+						}
+					}
+
+					fullText = outputText
+
+				}
+				return false
+			}))
+
+			if !stream {
+				raw, _ := json.Marshal(map[string]interface{}{
+					"choices": []interface{}{
+						map[string]interface{}{
+							"delta": map[string]interface{}{
+								"content": fullText,
+							},
+						},
+					},
+				})
+				ctx.DisplayByRaw(raw)
+			}
+
+		})
+
 		err := nuwa.Http().Run()
 		if err != nil {
 			log.Println(err)
@@ -246,25 +381,45 @@ func serviceStartUp() {
 	}()
 }
 
+var curPath, _ = nuwa.Helper().GetCurrentPath()
+
+//go:embed init.js
+var initJsSrc string
+
 func main() {
 	defer func() {
 		if translate != nil {
 			translate.Close()
 		}
 	}()
-	serviceStartUp() //启动服务
-
-	var fc *gowebview2.AppMode
-	fc, err := gowebview2.NewAppModeWithMemory(fsbin, "src")
-	if err != nil {
-		panic(err)
-	}
 
 	nuwa.DefaultBoltDbPath = filepath.Join(adminHome, "go-llama.cpp-ui.data") //设置bolt文件路径
 
-	fc.Run(map[string]string{
-		"width":  "1200",
-		"height": "900",
-		"debug":  cast.ToString(debug),
+	serviceStartUp() //启动服务
+
+	var fc *gowebview2.AppMode
+	var err error
+	var jsSrc string
+	if nuwa.Helper().PathExists(filepath.Join(curPath, "app")) {
+		//设置webview的js
+		jsSrc = fmt.Sprintf(initJsSrc, PORT)
+
+		fc, err = gowebview2.NewAppMode(filepath.Join(curPath, "app"))
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		fc, err = gowebview2.NewAppModeWithMemory(fsbin, "src")
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	fc.Run(gowebview2.AppModeConfig{
+		Width:  1200,
+		Height: 900,
+		// Debug:  true,
+		Title:     "go-chat-ui",
+		InitJsSrc: jsSrc,
 	})
 }
