@@ -4,11 +4,11 @@ go 1.19
 
 require (
 	github.com/gorilla/websocket v1.5.0
-	github.com/spf13/cast v1.5.0
 	github.com/tidwall/gjson v1.14.4
+	github.com/tidwall/sjson v1.2.4
 	github.com/wailovet/go-llama.cpp-winbin v0.0.0-20230423040459-e4a0678e445c
 	github.com/wailovet/gotranslate v0.0.0-20230422054108-85f2751e60a4
-	github.com/wailovet/gowebview2 v0.0.0-20230413165101-7f715c9a91e0
+	github.com/wailovet/gowebview2 v0.0.0-20230426163608-8fa78865056f
 	github.com/wailovet/nuwa v0.0.0-20230308063344-ea0a3b766ca2
 )
 
@@ -21,6 +21,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/goccy/go-json v0.9.10 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible // indirect
@@ -38,7 +39,6 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/tidwall/sjson v1.2.4 // indirect
 	github.com/wailovet/easycgo v0.0.0-20230416030350-f942820816ea // indirect
 	github.com/wailovet/gofunc v0.0.0-20201119085723-df1175b913b4 // indirect
 	github.com/wailovet/lorca v0.1.20 // indirect
