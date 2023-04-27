@@ -7,7 +7,7 @@ require (
 	github.com/tidwall/gjson v1.14.4
 	github.com/tidwall/sjson v1.2.4
 	github.com/wailovet/go-llama.cpp-winbin v0.0.0-20230423040459-e4a0678e445c
-	github.com/wailovet/gotranslate v0.0.0-20230422054108-85f2751e60a4
+	github.com/wailovet/gotranslate v0.0.0-20230422054614-9fd2bf369766
 	github.com/wailovet/gowebview2 v0.0.0-20230426163608-8fa78865056f
 	github.com/wailovet/nuwa v0.0.0-20230308063344-ea0a3b766ca2
 )

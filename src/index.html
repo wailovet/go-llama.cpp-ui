@@ -64,8 +64,9 @@
             display: flex;
             align-items: center;
         }
+
         .chat_item img {
-            width: 50%; 
+            width: 50%;
         }
 
         .space_bar div {
@@ -452,7 +453,9 @@
                                     <div v-if="item.content!=''">
                                         <div
                                             style="font-size:14px;flex-direction: column;align-items: flex-start;display: flex;justify-content: center;margin-top: 14px;margin-bottom: 14px;">
-                                            <div v-html="item['show']=='zh' && item.chinese!=''?item.chinese:item.content"> </div>
+                                            <div
+                                                v-html="item['show']=='zh' && item.chinese!=''?item.chinese:item.content">
+                                            </div>
                                             <el-button v-if="lock && index==chatList.length-1" size="mini" type="plain"
                                                 @click="stopGenerate()">stop</el-button>
                                         </div>
@@ -558,6 +561,23 @@
                         <el-form-item label="停止符">
                             <el-input size="mini" v-model="predict_config.stop_words" style="width: 130px;">
                             </el-input>
+                        </el-form-item>
+                        <el-form-item label="batch">
+                            <el-input-number size="mini" v-model="predict_config.batch" :step="1">
+                            </el-input-number>
+                            <el-tooltip class="item" effect="dark" content="CUDA必须要大于32才会生效"
+                                placement="top-start">
+                                <svg t="1678602279133" class="icon" viewBox="0 0 1024 1024" version="1.1"
+                                    xmlns="http://www.w3.org/2000/svg" p-id="4047" width="12" height="12">
+                                    <path
+                                        d="M512 0C229.696 0 0 229.696 0 512s229.696 512 512 512 512-229.696 512-512-229.696-512-512-512z m0 960c-247.04 0-448-201.024-448-448 0-247.04 200.96-448 448-448 246.976 0 448 200.96 448 448 0 246.976-201.024 448-448 448z"
+                                        p-id="4048"></path>
+                                    <path
+                                        d="M562.624 198.528a192.96 192.96 0 0 0-168.128 33.6A190.784 190.784 0 0 0 320 384a32 32 0 0 0 64 0c0-39.936 18.112-76.8 49.664-101.312a130.56 130.56 0 0 1 112.96-22.208c42.88 11.136 77.824 46.016 88.896 88.96 16.128 62.336-12.544 124.352-69.824 150.848-52.096 24.064-85.696 79.68-85.696 141.504v30.208a32 32 0 0 0 64 0v-30.208c0-37.056 19.072-69.824 48.576-83.52 85.76-39.68 128.896-132.16 104.96-224.896a190.528 190.528 0 0 0-134.912-134.848z"
+                                        p-id="4049"></path>
+                                    <path d="M512 800m-48 0a48 48 0 1 0 96 0 48 48 0 1 0-96 0Z" p-id="4050"></path>
+                                </svg>
+                            </el-tooltip>
                         </el-form-item>
                         <el-form-item label="翻译模式">
                             <el-checkbox v-model="predict_config.translate"></el-checkbox>

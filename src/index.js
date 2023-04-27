@@ -108,6 +108,7 @@ function initVue() {
           penalty: 1,
           repeat: 64,
           tokens: 128,
+          batch: 1024,
           threads: 2,
           instruct: "",
           user_prefix: "### user:",

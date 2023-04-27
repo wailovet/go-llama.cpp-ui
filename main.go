@@ -156,6 +156,11 @@ func serviceStartUp() {
 			topK := int(gjson.Get(ctx.BODY, "top_k").Int())
 			tokens := int(gjson.Get(ctx.BODY, "tokens").Int())
 			threads := int(gjson.Get(ctx.BODY, "threads").Int())
+			batch := int(gjson.Get(ctx.BODY, "batch").Int())
+			if batch < 1 {
+				batch = 512
+			}
+
 			stop_words := ctx.REQUEST["stop_words"]
 			content := gjson.Get(ctx.BODY, "content").Raw
 
@@ -168,9 +173,9 @@ func serviceStartUp() {
 				AssistantPrefix: ctx.REQUEST["assistant_prefix"],
 				UserPrefix:      ctx.REQUEST["user_prefix"],
 			}
-			log.Println("topK:", topK, "repeat:", repeat, "penalty:", penalty, "temperature:", temperature, "topP:", topP, "tokens:", tokens, "threads:", threads, "stop_words:", stop_words)
+			log.Println("batch:", batch, "topK:", topK, "repeat:", repeat, "penalty:", penalty, "temperature:", temperature, "topP:", topP, "tokens:", tokens, "threads:", threads, "stop_words:", stop_words)
 
-			_, err := lm.Predict(prompts, his, llama.SetTopK(topK), llama.SetRepeat(repeat), llama.SetPenalty(penalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetStreamFn(func(outputText string) (stop bool) {
+			_, err := lm.Predict(prompts, his, llama.SetTopK(topK), llama.SetBatchSize(batch), llama.SetRepeat(repeat), llama.SetPenalty(penalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetStreamFn(func(outputText string) (stop bool) {
 
 				if strings.HasSuffix(outputText, stop_words) {
 					return true
@@ -321,7 +326,7 @@ func serviceStartUp() {
 				ctx.CheckErrDisplayByError(err)
 			}
 			buf := bytes.NewBuffer(nil)
-			lm.Predict(prompts, his, llama.SetPenalty(frequencyPenalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(int(maxTokens)), llama.SetThreads(4), llama.SetStreamFn(func(outputText string) (stop bool) {
+			lm.Predict(prompts, his, llama.SetBatchSize(512), llama.SetPenalty(frequencyPenalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(int(maxTokens)), llama.SetThreads(4), llama.SetStreamFn(func(outputText string) (stop bool) {
 
 				if strings.HasSuffix(outputText, "##") {
 					return true
