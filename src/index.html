@@ -587,8 +587,8 @@
                         v-model="predict_config.instruct"></textarea>
                 </div>
                 <div slot="footer" class="dialog-footer">
-                    <el-button @click="activeScreen('chat')">返回</el-button>
-                    <el-button type="primary" @click="loadModel()">加载模型</el-button>
+                    <el-button @click="activeScreen('chat')" :disabled="load_lock">返回</el-button>
+                    <el-button type="primary" @click="loadModel()" :disabled="load_lock">加载模型</el-button>
                 </div>
             </el-dialog>
 

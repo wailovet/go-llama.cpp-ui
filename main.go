@@ -19,7 +19,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/wailovet/go-llama.cpp-winbin"
 	"github.com/wailovet/gotranslate"
 	"github.com/wailovet/gowebview2"
 	"github.com/wailovet/nuwa"
@@ -28,7 +27,7 @@ import (
 //go:embed src
 var fsbin embed.FS
 
-var lm = Llama{}
+var lm NLP
 
 const debug = true
 
@@ -40,6 +39,23 @@ var wsConnMapLock sync.RWMutex               //ws连接池锁
 var adminHome, _ = os.UserHomeDir() //用户目录
 
 func modelLoad(filename string) error {
+	if lm != nil {
+		lm.Free()
+	}
+
+	_modelType := modelType(filename)
+
+	log.Println("modelType:", _modelType)
+
+	switch _modelType {
+	case "llama":
+		lm = &Llama{}
+	case "rwkv":
+		lm = &RWKV{}
+	default:
+		lm = &Llama{}
+	}
+
 	err := lm.StartUp(filename)
 	if err != nil {
 		return err
@@ -64,7 +80,7 @@ func serviceStartUp() {
 		nuwa.Config().Port = PORT
 
 		nuwa.Http().HandleFunc("/model/status", func(ctx nuwa.HttpContext) {
-			if lm.ModelFile() == "" {
+			if lm == nil || !lm.IsReady() {
 				ctx.DisplayByData("")
 				return
 			}
@@ -162,6 +178,11 @@ func serviceStartUp() {
 			}
 
 			stop_words := ctx.REQUEST["stop_words"]
+
+			stop_words = strings.ReplaceAll(stop_words, `\n`, "\n")
+			stop_words = strings.ReplaceAll(stop_words, `\r`, "\r")
+			stop_words = strings.ReplaceAll(stop_words, `\t`, "\t")
+
 			content := gjson.Get(ctx.BODY, "content").Raw
 
 			var his ChatHistory
@@ -175,25 +196,35 @@ func serviceStartUp() {
 			}
 			log.Println("batch:", batch, "topK:", topK, "repeat:", repeat, "penalty:", penalty, "temperature:", temperature, "topP:", topP, "tokens:", tokens, "threads:", threads, "stop_words:", stop_words)
 
-			_, err := lm.Predict(prompts, his, llama.SetTopK(topK), llama.SetBatchSize(batch), llama.SetRepeat(repeat), llama.SetPenalty(penalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetStreamFn(func(outputText string) (stop bool) {
-
-				if strings.HasSuffix(outputText, stop_words) {
-					return true
-				}
-				ret = outputText
-				if conn, ok := wsConnMap[sessionId]; ok {
-					err := conn.WriteMessage(websocket.TextMessage, []byte(nuwa.Helper().JsonEncode(map[string]interface{}{
-						"type":    "chat",
-						"content": ret,
-					})))
-					if err != nil {
-						log.Println(err)
+			_, err := lm.Predict(prompts, his, &PredictOption{
+				TopK:        topK,
+				BatchSize:   batch,
+				Repeat:      repeat,
+				Penalty:     penalty,
+				Temperature: temperature,
+				TopP:        topP,
+				Tokens:      tokens,
+				Threads:     threads,
+				StreamFn: func(outputText string) (stop bool) {
+					if strings.HasSuffix(outputText, stop_words) {
 						return true
 					}
-				}
+					ret = outputText
+					if conn, ok := wsConnMap[sessionId]; ok {
+						err := conn.WriteMessage(websocket.TextMessage, []byte(nuwa.Helper().JsonEncode(map[string]interface{}{
+							"type":    "chat",
+							"content": ret,
+						})))
+						if err != nil {
+							log.Println(err)
+							return true
+						}
+					}
 
-				return false
-			}))
+					return false
+				},
+			})
+
 			ctx.CheckErrDisplayByError(err)
 			ctx.DisplayByData(ret)
 		})
@@ -321,47 +352,54 @@ func serviceStartUp() {
 			}
 
 			fullText := ""
-			if lm.model == nil {
+			if !lm.IsReady() {
 				err := lm.StartUp(model)
 				ctx.CheckErrDisplayByError(err)
 			}
 			buf := bytes.NewBuffer(nil)
-			lm.Predict(prompts, his, llama.SetBatchSize(512), llama.SetPenalty(frequencyPenalty), llama.SetTemperature(temperature), llama.SetTopP(topP), llama.SetTokens(int(maxTokens)), llama.SetThreads(4), llama.SetStreamFn(func(outputText string) (stop bool) {
+			lm.Predict(prompts, his, &PredictOption{
+				BatchSize:   512,
+				Penalty:     frequencyPenalty,
+				Temperature: temperature,
+				TopP:        topP,
+				Tokens:      int(maxTokens),
+				Threads:     4,
+				StreamFn: func(outputText string) (stop bool) {
+					if strings.HasSuffix(outputText, "##") {
+						return true
+					}
+					if stream {
+						buf.WriteString(strings.TrimPrefix(outputText, fullText))
 
-				if strings.HasSuffix(outputText, "##") {
-					return true
-				}
-				if stream {
-					buf.WriteString(strings.TrimPrefix(outputText, fullText))
-
-					// is correct utf8
-					if utf8.ValidString(buf.String()) {
-						raw, _ := json.Marshal(map[string]interface{}{
-							"choices": []interface{}{
-								map[string]interface{}{
-									"delta": map[string]interface{}{
-										"content": buf.String(),
+						// is correct utf8
+						if utf8.ValidString(buf.String()) {
+							raw, _ := json.Marshal(map[string]interface{}{
+								"choices": []interface{}{
+									map[string]interface{}{
+										"delta": map[string]interface{}{
+											"content": buf.String(),
+										},
 									},
 								},
-							},
-						})
+							})
 
-						buf.Reset()
+							buf.Reset()
 
-						raw = append(raw, []byte("\n")...)
+							raw = append(raw, []byte("\n")...)
 
-						ctx.OriginResponseWriter.Write(raw)
+							ctx.OriginResponseWriter.Write(raw)
 
-						if f, ok := ctx.OriginResponseWriter.(http.Flusher); ok {
-							f.Flush()
+							if f, ok := ctx.OriginResponseWriter.(http.Flusher); ok {
+								f.Flush()
+							}
 						}
+
+						fullText = outputText
+
 					}
-
-					fullText = outputText
-
-				}
-				return false
-			}))
+					return false
+				},
+			})
 
 			if !stream {
 				raw, _ := json.Marshal(map[string]interface{}{
@@ -421,9 +459,9 @@ func main() {
 	}
 
 	fc.Run(gowebview2.AppModeConfig{
-		Width:  1200,
-		Height: 900,
-		// Debug:  true,
+		Width:     1200,
+		Height:    900,
+		Debug:     debug,
 		Title:     "go-chat-ui",
 		InitJsSrc: jsSrc,
 	})

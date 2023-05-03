@@ -85,6 +85,7 @@ function initVue() {
         is_stop_generate: false,
         uuid: guid(),
         session_id: "",
+        load_lock: false,
         nlp_model: "",
         nlp_model_base_path: "",
         nlp_model_list: [],
@@ -330,10 +331,12 @@ async function loadConfig() {
 }
 
 async function loadModel() {
+  app.load_lock = true;
   let res = await axios.post(`${host}/model/reload`, {
     base_path: app.nlp_model_base_path,
     filename: app.nlp_model,
   });
+  app.load_lock = false;
   res = res.data;
   if (res.code == 0) {
     app.$message.success("加载成功");
@@ -471,7 +474,7 @@ async function sendText() {
     }
 
     app.sourceChatList = JSON.parse(JSON.stringify(app.sourceChatList));
-    
+
     app.$forceUpdate();
 
     await saveCurrentChatHistory();
@@ -515,8 +518,12 @@ async function saveCurrentChatHistory() {
   for (let i = 0; i < history.length; i++) {
     if (history[i].uuid == app.uuid) {
       isExist = true;
-      history[i].content = app.sourceChatList;
-      if (history[i].content[0].chinese != "") {
+      history[i].content = JSON.parse(JSON.stringify(app.sourceChatList));
+
+      if (
+        history[i].content[0].chinese &&
+        history[i].content[0].chinese != ""
+      ) {
         history[i].title = history[i].content[0].chinese;
       } else {
         history[i].title = history[i].content[0].content;

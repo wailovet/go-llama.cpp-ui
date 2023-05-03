@@ -8,7 +8,6 @@ import (
 )
 
 type Llama struct {
-	// contains filtered or unexported fields
 	model     *llama.LLama
 	modelfile string
 }
@@ -30,13 +29,15 @@ func (l *Llama) StartUp(modelfile string) error {
 	return nil
 }
 
-type Prompts struct {
-	Instruct        string `json:"instruct"`
-	AssistantPrefix string `json:"assistant_prefix"` //助手前缀
-	UserPrefix      string `json:"user_prefix"`      //用户前缀
+func (l *Llama) Free() {
+	if l.model != nil {
+		l.model.Free()
+		l.model = nil
+		l.modelfile = ""
+	}
 }
 
-func (l *Llama) Predict(p Prompts, his ChatHistory, opts ...llama.PredictOption) (string, error) {
+func (l *Llama) Predict(p Prompts, his ChatHistory, opts *PredictOption) (string, error) {
 	if l.ModelFile() == "" {
 		return "", fmt.Errorf("model_not_loaded")
 	}
@@ -62,5 +63,36 @@ func (l *Llama) Predict(p Prompts, his ChatHistory, opts ...llama.PredictOption)
 	}
 	text += p.AssistantPrefix
 	log.Println(text)
-	return l.model.Predict(text, opts...)
+
+	var mopts []llama.PredictOption
+	if opts != nil {
+		if opts.BatchSize > 0 {
+			mopts = append(mopts, llama.SetBatchSize(opts.BatchSize))
+		}
+		if opts.Penalty > 0 {
+			mopts = append(mopts, llama.SetPenalty(opts.Penalty))
+		}
+		if opts.Temperature > 0 {
+			mopts = append(mopts, llama.SetTemperature(opts.Temperature))
+		}
+		if opts.TopP > 0 {
+			mopts = append(mopts, llama.SetTopP(opts.TopP))
+		}
+		if opts.MaxTokens > 0 {
+			mopts = append(mopts, llama.SetTokens(opts.MaxTokens))
+		}
+		if opts.Threads > 0 {
+			mopts = append(mopts, llama.SetThreads(opts.Threads))
+		}
+		if opts.StreamFn != nil {
+			mopts = append(mopts, llama.SetStreamFn(opts.StreamFn))
+		}
+
+	}
+
+	return l.model.Predict(text, mopts...)
+}
+
+func (l *Llama) IsReady() bool {
+	return l.model != nil
 }
