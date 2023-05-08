@@ -122,8 +122,10 @@ func serviceStartUp() {
 		})
 
 		nuwa.Http().HandleFunc("/translate", func(ctx nuwa.HttpContext) {
+			var err error
 			if translate == nil {
-				translate = gotranslate.NewTranslate()
+				translate, err = gotranslate.NewTranslate()
+				ctx.CheckErrDisplayByError(err)
 			}
 			content := ctx.ParamRequired("content")
 			to := ctx.ParamRequired("to")
