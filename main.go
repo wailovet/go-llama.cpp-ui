@@ -30,7 +30,7 @@ var fsbin embed.FS
 
 var lm NLP
 
-const debug = true
+const debug = false
 
 const PORT = "36182" //内部端口
 
