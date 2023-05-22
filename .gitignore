@@ -18,3 +18,4 @@ log.txt
 go.sum
 *.zip
 test_build
+bert-tokenizer.json

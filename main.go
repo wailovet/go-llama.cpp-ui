@@ -22,6 +22,7 @@ import (
 	"github.com/wailovet/gotranslate"
 	"github.com/wailovet/gowebview2"
 	"github.com/wailovet/nuwa"
+	"github.com/wailovet/webdriver"
 )
 
 //go:embed src
@@ -62,8 +63,6 @@ func modelLoad(filename string) error {
 	}
 	return nil
 }
-
-var translate *gotranslate.Translate
 
 func serviceStartUp() {
 	go func() {
@@ -122,11 +121,6 @@ func serviceStartUp() {
 		})
 
 		nuwa.Http().HandleFunc("/translate", func(ctx nuwa.HttpContext) {
-			var err error
-			if translate == nil {
-				translate, err = gotranslate.NewTranslate()
-				ctx.CheckErrDisplayByError(err)
-			}
 			content := ctx.ParamRequired("content")
 			to := ctx.ParamRequired("to")
 			from := ctx.ParamRequired("from")
@@ -175,6 +169,7 @@ func serviceStartUp() {
 			tokens := int(gjson.Get(ctx.BODY, "tokens").Int())
 			threads := int(gjson.Get(ctx.BODY, "threads").Int())
 			batch := int(gjson.Get(ctx.BODY, "batch").Int())
+
 			if batch < 1 {
 				batch = 512
 			}
@@ -190,6 +185,58 @@ func serviceStartUp() {
 			var his ChatHistory
 			json.Unmarshal([]byte(content), &his)
 			ret := ""
+
+			if strings.Index(ctx.REQUEST["instruct"], "{$search}") > -1 {
+				var preSearchContents = []string{}
+				for i := range his {
+					if his[i].Role == "user" {
+						preSearchContents = append(preSearchContents, his[i].Content)
+					}
+				}
+				blockQuery := preSearchContents[len(preSearchContents)-1]
+
+				var tmp []string
+				for i := range preSearchContents {
+					if strings.TrimSpace(preSearchContents[i]) == "" {
+						continue
+					}
+					tmp = append([]string{preSearchContents[i]}, tmp...)
+				}
+
+				maxSize := 6
+				if maxSize > len(tmp) {
+					maxSize = len(tmp)
+				}
+				preSearchContents = tmp[:maxSize]
+
+				preSearchContent := ""
+
+				for i := range preSearchContents {
+					if preSearchContent == "" {
+						preSearchContent = fmt.Sprintf("%s", preSearchContents[i])
+					} else {
+						preSearchContent += " | " + fmt.Sprintf("%s", preSearchContent+" "+preSearchContents[i])
+					}
+				}
+				preSearchContent = fmt.Sprintf("%s", preSearchContent)
+
+				aging := isAging(preSearchContent)
+				log.Println("aging:", aging)
+
+				preSearchContent = strings.ReplaceAll(preSearchContent, "\n", " ")
+				preSearchContent = strings.ReplaceAll(preSearchContent, ",", " ")
+
+				log.Println("搜索内容:", preSearchContent)
+
+				var searchOutput string
+				if aging {
+					searchOutput = search(preSearchContent, blockQuery, 0)
+				} else {
+					searchOutput = search(preSearchContent, blockQuery)
+				}
+
+				ctx.REQUEST["instruct"] = strings.ReplaceAll(ctx.REQUEST["instruct"], "{$search}", searchOutput)
+			}
 
 			prompts := Prompts{
 				Instruct:        ctx.REQUEST["instruct"],
@@ -431,17 +478,24 @@ var curPath, _ = nuwa.Helper().GetCurrentPath()
 //go:embed init.js
 var initJsSrc string
 
+var translate = gotranslate.NewTranslate()
+var mwebdriver = webdriver.NewWebDriver()
+
 func main() {
 	defer func() {
 		if translate != nil {
-			translate.Close()
+			mwebdriver.StopSession()
 		}
 	}()
+	// mwebdriver.SetDebug(true)
+	mwebdriver.StartSession()
+
+	translate.SetWebdriver(mwebdriver)
+
+	serviceStartUp()       //启动服务
+	searchServiceStartUp() //启动搜索服务
 
 	nuwa.DefaultBoltDbPath = filepath.Join(adminHome, "go-llama.cpp-ui.data") //设置bolt文件路径
-
-	serviceStartUp() //启动服务
-
 	var fc *gowebview2.AppMode
 	var err error
 	var jsSrc string
@@ -467,4 +521,55 @@ func main() {
 		Title:     "go-chat-ui",
 		InitJsSrc: jsSrc,
 	})
+}
+
+func faseAsk(content string) (output string) {
+	lm.Predict(
+		Prompts{
+			Instruct: fmt.Sprintf("%s", content),
+		},
+		ChatHistory{},
+		&PredictOption{
+			Repeat:      20,
+			Tokens:      64,
+			BatchSize:   64,
+			Temperature: 0.5,
+			Threads:     2,
+			StreamFn: func(outputText string) (stop bool) {
+				output = outputText
+				return strings.HasSuffix(outputText, "\n")
+			},
+		},
+	)
+	return
+}
+
+func isAging(content string) bool {
+	relatedWords := []string{
+		"实时",
+		"最新",
+		"当前",
+		"现在",
+		"目前",
+		"时下",
+		"明天",
+		"昨天",
+		"最近",
+		"real time",
+		"latest",
+		"current",
+		"now",
+		"present",
+		"today",
+		"tomorrow",
+		"recent",
+	}
+
+	for _, v := range relatedWords {
+		if strings.Index(content, v) > -1 {
+			return true
+		}
+	}
+
+	return false
 }
