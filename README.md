@@ -2,6 +2,7 @@
 为llama.cpp编写的UI操作界面,在win上可以快速体验llama.cpp的功能
 
 ## 更新
++ 20230523: 更新llama.cpp到最新版本,修复了一些bug,新增搜索模式
 + 20230503: 新增rwkv模型支持
 + 20230428: 优化cuda版本,使用大prompt时有明显加速
 + 20230427: 当相同目录下存在app文件夹使,使用app文件夹下的UI进行启动
@@ -12,6 +13,17 @@
 
 ### 翻译模式演示
 https://www.bilibili.com/video/BV1Xg4y1j7iJ
+
+### 搜索模式
+在开始的指令框中填入含{$search}的指令,程序会自动搜索并返回结果
+例如:
+```
+You are a helpful AI Assistant. 
+We have provided an existing answer: 
+{$search}
+We have the opportunity to refine the existing answer(only if needed) with some more context below.
+```
+其中{$search}会被搜索结果替换
 
 
 ## 快速开始 
