@@ -504,8 +504,16 @@
             </div>
 
             <el-dialog title="设置" :visible="active_screen=='setting'" :show-close="false" center width="800px">
-                <div style="height: 400px;width: 740px;">
+                <div style="height: 500px;width: 740px;">
                     <el-form ref="form" label-width="100px" :inline="true">
+                        <el-form-item label="外部api地址">
+                            <el-input size="mini" v-model="external_api" placeholder="llama.cpp服务端外部api地址"
+                                style="width: 600px;"></el-input>
+                        </el-form-item>
+                    </el-form>
+
+
+                    <el-form ref="form" label-width="100px" :inline="true" v-if="external_api==''">
                         <el-form-item label="模型文件夹">
                             <el-input size="mini" v-model="nlp_model_base_path" placeholder="留空为当前执行程序所在文件夹"
                                 style="width: 200px;"></el-input>
@@ -517,7 +525,6 @@
                                 </el-option>
                             </el-select>
                         </el-form-item>
-
                     </el-form>
 
 
@@ -565,8 +572,7 @@
                         <el-form-item label="batch">
                             <el-input-number size="mini" v-model="predict_config.batch" :step="1">
                             </el-input-number>
-                            <el-tooltip class="item" effect="dark" content="CUDA必须要大于32才会生效"
-                                placement="top-start">
+                            <el-tooltip class="item" effect="dark" content="CUDA必须要大于32才会生效" placement="top-start">
                                 <svg t="1678602279133" class="icon" viewBox="0 0 1024 1024" version="1.1"
                                     xmlns="http://www.w3.org/2000/svg" p-id="4047" width="12" height="12">
                                     <path

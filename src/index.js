@@ -87,6 +87,7 @@ function initVue() {
         session_id: "",
         load_lock: false,
         nlp_model: "",
+        external_api: "",
         nlp_model_base_path: "",
         nlp_model_list: [],
         history: [],
@@ -137,6 +138,9 @@ function initVue() {
       },
       nlp_model: function (val) {
         storageSetValue("config.nlp_model", val);
+      },
+      external_api: function (val) {
+        storageSetValue("config.external_api", val);
       },
       predict_config: {
         handler: function (val) {
@@ -324,6 +328,7 @@ async function loadPage() {
 async function loadConfig() {
   app.nlp_model_base_path = await storageGetValue("config.nlp_model_base_path");
   app.nlp_model = await storageGetValue("config.nlp_model");
+  app.external_api = await storageGetValue("config.external_api");
   let predict_config = await storageGetValue("config.predict_config");
   if (predict_config) {
     app.predict_config = JSON.parse(predict_config);
@@ -333,6 +338,7 @@ async function loadConfig() {
 async function loadModel() {
   app.load_lock = true;
   let res = await axios.post(`${host}/model/reload`, {
+    external_api: app.external_api,
     base_path: app.nlp_model_base_path,
     filename: app.nlp_model,
   });

@@ -39,28 +39,41 @@ var wsConnMapLock sync.RWMutex               //ws连接池锁
 
 var adminHome, _ = os.UserHomeDir() //用户目录
 
+func isExternalApi(filename string) bool {
+	if strings.HasPrefix(filename, "http://") || strings.HasPrefix(filename, "https://") {
+		return true
+	}
+	return false
+}
+
 func modelLoad(filename string) error {
 	if lm != nil {
 		lm.Free()
 	}
 
-	_modelType := modelType(filename)
+	if isExternalApi(filename) {
+		lm = &ExternalApiService{}
+		lm.StartUp(filename)
+	} else {
+		_modelType := modelType(filename)
 
-	log.Println("modelType:", _modelType)
+		log.Println("modelType:", _modelType)
 
-	switch _modelType {
-	case "llama":
-		lm = &Llama{}
-	case "rwkv":
-		lm = &RWKV{}
-	default:
-		lm = &Llama{}
+		switch _modelType {
+		case "llama":
+			lm = &Llama{}
+		case "rwkv":
+			lm = &RWKV{}
+		default:
+			lm = &Llama{}
+		}
+
+		err := lm.StartUp(filename)
+		if err != nil {
+			return err
+		}
 	}
 
-	err := lm.StartUp(filename)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -88,11 +101,16 @@ func serviceStartUp() {
 
 		nuwa.Http().HandleFunc("/model/reload", func(ctx nuwa.HttpContext) {
 			basePath := ctx.REQUEST["base_path"]
+			// external_api
+			filename := ctx.REQUEST["external_api"]
+
 			if basePath == "" {
 				basePath, _ = nuwa.Helper().GetCurrentPath()
 			}
-			filename := ctx.ParamRequired("filename")
-			filename = filepath.Join(basePath, filename)
+			if filename == "" {
+				filename = ctx.REQUEST["filename"]
+				filename = filepath.Join(basePath, filename)
+			}
 			err := modelLoad(filename)
 			ctx.CheckErrDisplayByError(err)
 			ctx.DisplayByData(filename)
@@ -254,6 +272,7 @@ func serviceStartUp() {
 				TopP:        topP,
 				Tokens:      tokens,
 				Threads:     threads,
+				Stop:        []string{stop_words},
 				StreamFn: func(outputText string) (stop bool) {
 					if strings.HasSuffix(outputText, stop_words) {
 						return true

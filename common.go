@@ -109,5 +109,6 @@ type PredictOption struct {
 	Tokens      int
 	MaxTokens   int
 	Threads     int
+	Stop        []string
 	StreamFn    func(outputText string) (stop bool)
 }
